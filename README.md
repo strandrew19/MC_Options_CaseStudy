@@ -3,8 +3,10 @@
 
 The goals of this research case study are to Evaluate pricing methodology for Options with no closed form solution (American Options & Arthematic Mean Asian Options)
 
-## Black Scholes Model (Call Option)
 
+<details><summary>Black Scholes Model (Call Option)</summary>
+<p>
+  
 | Variables | Description |
 | --------- | ----------- |
 | **C**     |  Call Option Price |
@@ -17,8 +19,8 @@ The goals of this research case study are to Evaluate pricing methodology for Op
 
 ![Black Scholes Call](https://user-images.githubusercontent.com/62930497/151790833-0f3a08e5-5053-4544-b41c-091ce2504cd2.PNG)
 
-
-
+</p>
+</details>
 
 
 
