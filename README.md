@@ -22,7 +22,37 @@ The goals of this research case study are to Evaluate pricing methodology for Op
 </p>
 </details>
 
+<details><summary>Pricing a European Call Option</summary>
+<p>
+  
+| Variables | Description |
+| --------- | ----------- |
+| **S(T)**     |  Call Option Price |
+| **N**     | CDF of the Normal Distribution |
+| **S(t)**    | Spot Price of Asset |
+| **K**     | Strike price |
+| **r**     | risk-free interest rate |
+| **T**     | Time at Expiration |
+| **t**     | Current Time |
+| **σ**     | volatility of the asset | 
+| **Q**     | Probability Measure |
+| **μ**     | Mean |
+| **X**     | X ~ N(0,1) |
+  
+ Standard Brownian motion:
+  
+ ![Standard Brownian Motion](https://user-images.githubusercontent.com/62930497/151795420-627f880e-c560-4e38-af2b-913a5c75e1fa.PNG)
+  
+ European Call Option Pricing 
+  
+ Equation 1: Explicit Brownian Motion
+  
+ Equation 2: Draw from Standard Normal Distribution
+  
+ ![European Call Option](https://user-images.githubusercontent.com/62930497/151795578-ef8cdabe-21b1-46b4-a179-050c39b72157.PNG)
 
+</p>
+</details>
 
 
 
