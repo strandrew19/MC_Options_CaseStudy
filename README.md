@@ -5,7 +5,7 @@ The goals of this research case study are to Evaluate pricing methodology for Op
 
 
 Black Scholes Model<br><br>
-$C= N(d_1)S_t - N(d_2) Ke^{-rt}$<br><br>
+C= N(d_1)S_t - N(d_2) Ke^{-rt}
 where $d_1= \cfrac{ln \cfrac{S_t}{K} + (r + \cfrac{\sigma^2}{2})t}{\sigma \sqrt{t}}$<br><br>
 and $d_2 = d_1 - \sigma \sqrt{t}$<br><br>
 C = call option price<br>
