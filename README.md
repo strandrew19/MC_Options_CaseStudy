@@ -60,4 +60,5 @@ The goals of this research case study are to Evaluate pricing methodology for Op
 Resources:
 Monte Carlo Methods in Financial Engineering - Paul Glasserman
 Pricing Asian Options using Monte Carlo Methods - Hongbin Zhang
+
 https://cran.r-project.org/web/packages/derivmkts/derivmkts.pdf
