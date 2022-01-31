@@ -15,11 +15,17 @@ Black Scholes Model<br><br>
 <img src="https://render.githubusercontent.com/render/math?math=d_2 = d_1 - \sigma \sqrt{t}">
 
 C = call option price
+
 N = CDF of the normal distribution
+
 St= spot price of an asset
+
 K = strike price
+
 r = risk-free interest rate
+
 t = time to maturity
+
 σ = volatility of the asset
 
 Resources:
