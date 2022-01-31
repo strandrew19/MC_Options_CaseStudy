@@ -3,30 +3,29 @@
 
 The goals of this research case study are to Evaluate pricing methodology for Options with no closed form solution (American Options & Arthematic Mean Asian Options)
 
+<details><summary>Black Scholes Model (Call Option) </summary>
+<p>
 
-Black Scholes Model<br><br>
+| Variables | Description |
+| --------- | ----------- |
+| **C**     |  Call Option Price |
+| **N**     | CDF of the Normal Distribution |
+| **S(t)**    | Spot Price of Asset |
+| **K**     | Strike price |
+| **r**     | risk-free interest rate |
+| **t**     | time to maturity |
+| **σ**     | volatility of the asset | 
 
-<img src="https://render.githubusercontent.com/render/math?math=C= N(d_1)S_t - N(d_2) Ke^{-rt}">
 
- 
-<img src="https://render.githubusercontent.com/render/math?math=d_1= \cfrac{ln \cfrac{S_t}{K} + (r + \cfrac{\sigma^2}{2})t}{\sigma \sqrt{t}}">
+</p>
+</details>
 
 
-<img src="https://render.githubusercontent.com/render/math?math=d_2 = d_1 - \sigma \sqrt{t}">
 
-C = call option price
 
-N = CDF of the normal distribution
 
-St= spot price of an asset
 
-K = strike price
 
-r = risk-free interest rate
-
-t = time to maturity
-
-σ = volatility of the asset
 
 Resources:
 Monte Carlo Methods in Financial Engineering - Paul Glasserman
