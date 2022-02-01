@@ -54,11 +54,29 @@ The goals of this research case study are to Evaluate pricing methodology for Op
 </p>
 </details>
 
+<details><summary>Crude Monte Carlo and Antithetic Variables</summary>
+<p>
 
+Given the expectation:
+  
+![Expectation](https://user-images.githubusercontent.com/62930497/151938099-e7f644e7-15b1-4f9b-a865-d238c65c5473.PNG)
 
+The crude Monte Carlo is given by:
+  
+![Crude Monte Carlo](https://user-images.githubusercontent.com/62930497/151938112-00c5500c-603a-4bb7-b24b-55ab61d13ce6.PNG)
+
+The estimate by the antithetic variate method is:
+  
+![Antithetic Variables](https://user-images.githubusercontent.com/62930497/151938129-1b841f7b-9788-42b9-8bec-4b6bcf274739.PNG)
+
+Given the two antithetic variates are negatively correlated, if the function g is monotonic than variance reduction can be achieved
+  
+</p>
+</details>
 
 Resources:
 Monte Carlo Methods in Financial Engineering - Paul Glasserman
+
 Pricing Asian Options using Monte Carlo Methods - Hongbin Zhang
 
 https://cran.r-project.org/web/packages/derivmkts/derivmkts.pdf
