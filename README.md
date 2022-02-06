@@ -135,3 +135,5 @@ Monte Carlo Methods in Financial Engineering - Paul Glasserman
 Pricing Asian Options using Monte Carlo Methods - Hongbin Zhang
 
 https://cran.r-project.org/web/packages/derivmkts/derivmkts.pdf
+
+https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.html#antithetic-variates
