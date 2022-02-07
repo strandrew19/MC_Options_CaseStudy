@@ -29,58 +29,211 @@
 ## While MC is inefficient under closed form problems it shines under open
 ## MC provides better approximations of actual options price
 
+#From Wikipedia:
 #M. Broadie and P. Glasserman were the first to price AO by MC
 
+#Variables to be used:
 
+#Initial price of asset : S_0 
+#strike : k
+#volatility/standard deviation: vol
+#continuously compounded risk-free rate: r
+#Time to maturity n years: T_years (252 trading days in year)
+#Number of prices in avg calc : m
+#Number of Monte Carlo iterations : numsim 
+#div yield : d  (This one will be ignored for now)
+
+#https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.html#antithetic-variates
 #Let's build a function to simulate
-sim_european_call<-function(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=10^4){
+ECO<-function(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=10^4){
   #Simulate the stock
-  sim_S_T<-S_0*exp((r-0.5*vol^2)*T_years + vol*rnorm(n)*sqrt(T))
+  sim_S_T<-S_0*exp((r-0.5*vol^2)*T_years + vol*rnorm(numsim)*sqrt(T))
   #Calculate payoffs
   payoffs<-pmax(sim_S_T-K,0)*exp(-r*T_years)
   #Simulate results and bounds
   Price<-mean(payoffs)
-  SE<-1.96*sd(payoffs)/sqrt(n)
+  SE<-1.96*sd(payoffs)/sqrt(numsim)
   LowerB <- Price - SE
   UpperB <- Price + SE
   return(c(Price=Price,SE=SE,Lower=LowerB,Upper=UpperB))
 }
 #Simulation with 1000 instances
-sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=10^3)
+ECO(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=10^3)
 #Simulation with 10000 instances
-sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=10^4)
+ECO(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=10^4)
 #Simulation with 100000 instances
-sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=10^5)
+ECO(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=10^5)
+
+#As we see, the increased number of simulations reduce the variance of the estimate
+
+#To evaluate the true value of the option in this closed case we look at the black-scholes formula
 
 #Real Value
-Black_Scholes_call <- function(S_0=100,K=100,r=0.02,T_in_days=252, vol=0.25){
-  d1_ = (log(S_0/K)+(r+vol^2/2)*T_in_days)/(vol*sqrt(T_in_days))
-  d2_= (log(S_0/K)+(r-vol^2/2)*T_in_days)/(vol*sqrt(T_in_days))
-  C_bseu= S_0*pnorm(d1_)-K*exp(-r*T_in_days)*pnorm(d2_) 
+Black_Scholes_call <- function(S_0=100,K=100,r=0.02,T_years=1, vol=0.25){
+  d1_ = (log(S_0/K)+(r+vol^2/2)*T_years)/(vol*sqrt(T_years))
+  d2_= (log(S_0/K)+(r-vol^2/2)*T_years)/(vol*sqrt(T_years))
+  C_bseu= S_0*pnorm(d1_)-K*exp(-r*T_years)*pnorm(d2_) 
   return(C_bseu)
 }
-Black_Scholes_call(S_0=100,K=100,r=0.02,T_in_days=1, vol=0.25)
+Black_Scholes_call(S_0=100,K=100,r=0.02,T_years=1, vol=0.25)
 
-#Demonstration of CI shrinking with # of simulations increasing
+#Visual demonstration of CI shrinking with # of simulations increasing
 set.seed(420)
 
 bs_simul <- data.frame(instances = 50,
-                       t(sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=50)))
+                       t(sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=50)))
 
 for(i in 2:1000){
   set.seed(420)
   bs_simul <- rbind(bs_simul,
                     data.frame(instances=50*i,
-                               t(sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,n=50*i))))
+                               t(sim_european_call(S_0=100,K=100,vol=0.25,T_years=1,r=0.02,numsim=50*i))))
 }
 
 bs_price <- Black_Scholes_call(S_0=100,K=100,r=0.02,T_in_days=1, vol=0.25)
 
 require(ggplot2)
-#Let's plot the progress of the bounds and price estimate
+#Plot the progress of the bounds and price estimate
 ggplot(data=bs_simul) + geom_line(aes(x=instances,y=Price)) +
   geom_line(aes(x=instances,y=Lower),color="blue",linetype=2) +
   geom_line(aes(x=instances,y=Upper),color="blue",linetype=2) +
   geom_hline(yintercept=bs_price,color="red") +
   ylim(c(min(bs_simul$Lower),max(bs_simul$Upper))) + theme_bw()
+
+
+"Moving on to Asian Options"
+
+#Problem: How do you know the final price and the paths to get there?
+#Given Asian Options are path dependent, we should employ MC
+
+#Clean up Vars
+rm(list=ls())
+
+s <- 100 #price of asset 
+k <- 100 #strike
+v <- 0.2 #volatility
+r <-  0.05 #continuously compounded risk-free rate
+tt <-  1 #time to maturity n years
+d <- 0.05#div yield
+m <- 20  #Number of prices in avg calc
+numsim <- 10000  #Number of monte Carlo iterations
+
+set.seed(420)
+#Z - creates a matrix of draws from a normal distribution (Simulate Brownian Motion for Monte Carlo Simulation)
+#Matrix Dimensions (Rows: Simulation runs, Cols: Price Mark to Market Update)
+z <- matrix(rnorm(m * numsim), numsim, m)
+
+#Update normal distribution matrix by cumulatively adding row wise (To simulate price movements of stock)
+zcum <- t(apply(z, 1, cumsum))
+#Scale the time interval to the number of prices to be calculated
+h <- tt/m
+#Create a 1's matrix that will be updated with prices based on zcum matrix
+S <- matrix(1, nrow = numsim, ncol = m)
+
+#Loop through S Matrix, updating Asset price based on corresponding zcum value(Brownian Motion)
+for (i in 1:m) {
+  S[, i] <- s * exp((r - d - 0.5 * v^2) * h * i + 
+                      v * sqrt(h) * zcum[, i])
+}
+
+#Ending value of each Simulation run"
+ST <- S[, m]
+ST
+
+#Average Price of each simulation (Required for evaluation of Asian Option
+Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+Savg
+
+#Average Price of Call
+Option_Prices <- pmax(Savg - k, 0)
+avgpricecall <- mean(Option_Prices) * exp(-r * tt)
+avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
+
+#Black-Scholes Call
+tmp <- pmax(ST - k, 0)
+bscall <- mean(tmp) * exp(-r * tt)
+bscallsd <- sd(tmp) * exp(-r * tt)
+
+#Compare the Average price and standard deviation of BS and AO
+sprintf("Average Call (AO): %f, Standard Deviation %s", avgpricecall, round(avgpricecallsd,3)) 
+sprintf("BS Call: %f, Standard Deviation %s", bscall, round(bscallsd, 2))
+
+#Given the variance is bad, lets look at control and antithetic variables 
+
+"Using Antithetical Variates"
+
+rm(list=ls())
+
+ECO<-function(S_0=100,K=100,vol=0.2,T_years=1,r=0.02,numsim=10^4){
+  #Simulate the stock
+  sim_S_T<-S_0*exp((r-0.5*vol^2)*T_years + vol*rnorm(numsim)*sqrt(T))
+  #Calculate payoffs
+  payoffs<-pmax(sim_S_T-K,0)*exp(-r*T_years)
+  #Simulate results and bounds
+  Price<-mean(payoffs)
+  SE<-1.96*sd(payoffs)/sqrt(numsim)
+  LowerB <- Price - SE
+  UpperB <- Price + SE
+  return(c(Price=Price,SE=SE,Lower=LowerB,Upper=UpperB))
+}
+
+
+#Simulate payoffs with regular and antithetical
+ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4){
+  set.seed(420)
+  #normal Draws
+  z <- matrix(rnorm(m * numsim), numsim, m)
+  set.seed(420)
+  #antithetical draw
+  anti_z <- -z
+  #Simulate payoffs with both processes
+  sim_payoff_1<-exp(-r*tt)*pmax(s*exp((r-0.5*v^2)*tt + v*z*sqrt(tt))-k,0)
+  sim_payoff_2<-exp(-r*tt)*pmax(s*exp((r-0.5*v^2)*tt + v*anti_z*sqrt(tt))-k,0)
+  sim_payoff <- (sim_payoff_1 + sim_payoff_2)/2
+  #Calc results and bounds
+  Price<-mean(sim_payoff)
+  SE<-1.96*sd(sim_payoff)/sqrt(numsim/2)
+  LowerB <- Price - SE
+  UpperB <- Price + SE
+  return(c(Price=Price, SE=SE,Lower=LowerB, Upper=UpperB))
+}
+
+#Compare Variance of ECO with AV vs without
+ECO_Av()
+ECO()
+
+"On to Control Variates"
+
+ECO_CV<-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4, with_naive=TRUE){
+  #Simulate Final Stock values
+  ST <- s*exp((r-0.5*v^2)*T_years + v * rnorm(numsim) * sqrt(T_years))
+  #Simulate Payoffs
+  sim_payoff<-exp(-r*T_years)*pmax(ST-k,0)
+  #Calculate Theta_star
+  theta_star<-cov(ST,sim_payoff)/var(ST)
+  #Calculate CV effect
+  payoff_cv <- sim_payoff - theta_star*(ST - s*exp(r*T_years))
+  #Calculate the output of naive simulation as well
+  if(with_naive){
+    Price<-mean(sim_payoff)
+    SE<-1.96*sd(sim_payoff)/sqrt(numsim)
+    LowerB <- Price - SE
+    UpperB <- Price + SE
+    print(c(Price_naive=Price,SE_naive=SE,Lower=LowerB,Upper=UpperB))
+  }
+  #Calculate expected price
+  Price<-mean(payoff_cv)
+  SE<-1.96*sd(payoff_cv)/sqrt(numsim)
+  LowerB <- Price - SE
+  UpperB <- Price + SE
+  return(c(Price_CV=Price,SE_CV=SE,Lower=LowerB,Upper=UpperB))
+}
+
+ECO_CV()
+
+ACO <- function(s=100,k=100,v=0.2,T_days=20,r=0.02, numsim=10^4){
+  T_days <- T_days/252 #Annualize time period
+  ST <- s0 * exp((r-v^2/2)*T_days + v*sqrt(T_days))
+}
+#Price dimension is set to 20 (IDEA: Mark to Market over 20 trading days - 1 month)
 
