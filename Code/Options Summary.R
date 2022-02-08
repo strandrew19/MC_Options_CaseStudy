@@ -320,5 +320,6 @@ ACO_AV <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
   
 }
 
+#Code is is just used to show AV do reduce variance for AO
 ACO_AV()
 
