@@ -32,6 +32,9 @@
 #From Wikipedia:
 #M. Broadie and P. Glasserman were the first to price AO by MC
 
+#Clear Global Enviroment
+rm(list=ls())
+
 #Variables to be used:
 
 #Initial price of asset : S_0 
@@ -42,6 +45,7 @@
 #Number of prices in avg calc : m
 #Number of Monte Carlo iterations : numsim 
 #div yield : d  (This one will be ignored for now)
+
 
 #https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.html#antithetic-variates
 #Let's build a function to simulate
@@ -109,61 +113,9 @@ ggplot(data=bs_simul) + geom_line(aes(x=instances,y=Price)) +
 #Clean up Vars
 rm(list=ls())
 
-s <- 100 #price of asset 
-k <- 100 #strike
-v <- 0.2 #volatility
-r <-  0.05 #continuously compounded risk-free rate
-tt <-  1 #time to maturity n years
-d <- 0.05#div yield
-m <- 20  #Number of prices in avg calc
-numsim <- 10000  #Number of monte Carlo iterations
+"Again we display MC for ECO"
 
-set.seed(420)
-#Z - creates a matrix of draws from a normal distribution (Simulate Brownian Motion for Monte Carlo Simulation)
-#Matrix Dimensions (Rows: Simulation runs, Cols: Price Mark to Market Update)
-z <- matrix(rnorm(m * numsim), numsim, m)
-
-#Update normal distribution matrix by cumulatively adding row wise (To simulate price movements of stock)
-zcum <- t(apply(z, 1, cumsum))
-#Scale the time interval to the number of prices to be calculated
-h <- tt/m
-#Create a 1's matrix that will be updated with prices based on zcum matrix
-S <- matrix(1, nrow = numsim, ncol = m)
-
-#Loop through S Matrix, updating Asset price based on corresponding zcum value(Brownian Motion)
-for (i in 1:m) {
-  S[, i] <- s * exp((r - d - 0.5 * v^2) * h * i + 
-                      v * sqrt(h) * zcum[, i])
-}
-
-#Ending value of each Simulation run"
-ST <- S[, m]
-ST
-
-#Average Price of each simulation (Required for evaluation of Asian Option
-Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
-Savg
-
-#Average Price of Call
-Option_Prices <- pmax(Savg - k, 0)
-avgpricecall <- mean(Option_Prices) * exp(-r * tt)
-avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
-
-#Black-Scholes Call
-tmp <- pmax(ST - k, 0)
-bscall <- mean(tmp) * exp(-r * tt)
-bscallsd <- sd(tmp) * exp(-r * tt)
-
-#Compare the Average price and standard deviation of BS and AO
-sprintf("Average Call (AO): %f, Standard Deviation %s", avgpricecall, round(avgpricecallsd,3)) 
-sprintf("BS Call: %f, Standard Deviation %s", bscall, round(bscallsd, 2))
-
-#Given the variance is bad, lets look at control and antithetic variables 
-
-"Using Antithetical Variates"
-
-rm(list=ls())
-
+#Generate prices for European Call Option using MC
 ECO<-function(S_0=100,K=100,vol=0.2,T_years=1,r=0.02,numsim=10^4){
   #Simulate the stock
   sim_S_T<-S_0*exp((r-0.5*vol^2)*T_years + vol*rnorm(numsim)*sqrt(T))
@@ -177,16 +129,17 @@ ECO<-function(S_0=100,K=100,vol=0.2,T_years=1,r=0.02,numsim=10^4){
   return(c(Price=Price,SE=SE,Lower=LowerB,Upper=UpperB))
 }
 
+"Given Variance is bad, we look at using Antithetical Variates"
 
 #Simulate payoffs with regular and antithetical
-ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4){
-  #normal Draws(halved given other half are provided by anithetical)
+ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.05,numsim=10^4){
+  #normal Draws(halved given other half are provided by antithetical)
   z <- matrix(rnorm(m * numsim/2), numsim/2, m)
   #antithetical draw
   anti_z <- -z
   #Simulate payoffs with both processes
-  sim_payoff_1<-exp(-r*tt)*pmax(s*exp((r-0.5*v^2)*tt + v*z*sqrt(tt))-k,0)
-  sim_payoff_2<-exp(-r*tt)*pmax(s*exp((r-0.5*v^2)*tt + v*anti_z*sqrt(tt))-k,0)
+  sim_payoff_1<-exp(-r*T_years)*pmax(s*exp((r-0.5*v^2)*T_years + v*z*sqrt(T_years))-k,0)
+  sim_payoff_2<-exp(-r*T_years)*pmax(s*exp((r-0.5*v^2)*T_years + v*anti_z*sqrt(T_years))-k,0)
   sim_payoff <- (sim_payoff_1 + sim_payoff_2)/2
   #Calc results and bounds
   Price<-mean(sim_payoff)
@@ -197,8 +150,8 @@ ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4){
 }
 
 #Compare Variance of ECO with AV vs without
-ECO_Av()
 ECO()
+ECO_Av()
 
 
 "On to Control Variates"
@@ -229,9 +182,11 @@ ECO_CV<-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4, with_naive=TRUE
 }
 
 #European Call Option with Control Variate
-ECO_CV()
+ECO_CV
 
-ACO <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
+"MC for Vanilla Asian Option"
+
+ACO <- function(s=100,k=100,v=0.2,T_years=20/252,r=0.05, m = 20, numsim=10^4){
   "Z - creates a matrix of draws from a normal distribution (Simulate Brownian Motion for Monte Carlo Simulation)"
   "Matrix Dimensions (Rows: Simulation runs, Cols: Price Mark to Market Update)"
   "Price dimension is set to 20 (IDEA: Mark to Market over 20 trading days - 1 month)"
@@ -239,7 +194,7 @@ ACO <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
   "Update normal distribution matrix by cumulatively adding row wise (To simulate price movements of stock)"
   zcum <- t(apply(z,1,cumsum))
   "Scale the time interval to the number of prices to be calculated"
-  h <- tt/m
+  h <- T_years/m
   "Create a 1's matrix that will be updated with prices based on zcum matrix"
   S <- matrix(1, nrow = numsim, ncol = m)
   "Loop through S Matrix, updating Asset price based on corresponding zcum value(Brownian Motion)"
@@ -252,16 +207,19 @@ ACO <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
   
   #Evaluations with Black Scholes
   tmp <- pmax(ST - k, 0)
-  bscall <- mean(tmp) * exp(-r * tt)
-  bscallsd <- sd(tmp) * exp(-r * tt)
+  tmp <- tmp * exp(-r * T_years)
+  bscall <- mean(tmp) 
+  bscallsd <- 1.96*sd(tmp)/sqrt(numsim)
   bslower <- bscall - bscallsd
   bsupper <- bscall + bscallsd
   "Average Price of each simulation (Required for evaluation of Asian Option"
   Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
   "Average Price of Asian Call"
   Option_Prices <- pmax(Savg - k, 0)
-  avgpricecall <- mean(Option_Prices) * exp(-r * tt)
-  avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
+  "Discount to Present Value"
+  Option_Prices <- Option_Prices * exp(-r * T_years)
+  avgpricecall <- mean(Option_Prices) 
+  avgpricecallsd <- 1.96*sd(Option_Prices)/sqrt(numsim)
   aolower <- avgpricecall - avgpricecallsd 
   aoupper <- avgpricecall + avgpricecallsd
   "Return Matrix of ouputs"
@@ -272,11 +230,36 @@ ACO <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
 }
 
 #Vanilla Asian Call Option and its Black-Scholes equivalent(evaluate only final price)
-"NOTE: Negative prices are shown but it would be 0 in reality"
 ACO()
 
-ACO_AV <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
-  set.seed(420)
+#Function from https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.html#antithetic-variates for reference
+ACO <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
+    #Assume the last element of t_i is maturity
+    #t_i<-t_i/252 #Annualize time periods
+    #"Start drawing from a normal distribution (Simulate Brownian Motion for Monte Carlo Simulation) for stock movement"
+    #sT<-s*exp((r-v^2/2)*t_i[1] + v*sqrt(t_i[1])*rnorm(numsim))
+    #"Sum_ST tracks price movement"
+    #sum_sT<-sT
+    #"Begin following periods until maturity"
+    #for(i in 2:length(t_i)){
+    #  dt<-t_i[i]-t_i[i-1]
+    #  sT<-sT*exp((r-v^2/2)*dt + v*sqrt(dt)*rnorm(numsim))
+    #  sum_sT<-sum_sT + sT}
+    #price <- pmax(sum_sT/length(t_i) - k,0)*exp(-r*t_i[length(t_i)])
+    #mean_price<-mean(price)
+    #SE_price <- 1.96*sd(price)/sqrt(numsim)
+    #lower_price <- mean_price - SE_price
+    #upper_price <- mean_price + SE_price
+    #"Return Matrix of ouputs"
+    #output <- matrix(c(mean_price,SE_price,lower_price,upper_price), 1, 4)
+    #colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
+    #rownames(output) <- c("Asian Avg Price")
+    #return(output)
+    }
+
+ACO_AV <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10){
+  seed_gen <- sample(1:1000, 1)
+  set.seed(seed_gen)
   #Test without control variates for comparison
   test <- matrix(rnorm(m *numsim), numsim, m)
   tzcum <- t(apply(test,1,cumsum))
@@ -289,37 +272,93 @@ ACO_AV <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
   ST_test <- S_test[,m]
   Savg_test <- switch("arith", arith = apply(S_test, 1, sum)/m, geom = apply(S_test, 1, prod)^(1/m))
   Option_Prices_test <- pmax(Savg_test - k, 0)
-  avgpricecall_test <- mean(Option_Prices_test) * exp(-r * tt)
-  avgpricecallsd_test <- sd(Option_Prices_test) * exp(-r * tt)
+  Option_Prices_test <- Option_Prices_test* exp(-r * tt)
+  avgpricecall_test <- mean(Option_Prices_test) 
+  avgpricecallsd_test <- 1.96*sd(Option_Prices_test)/sqrt(numsim)
   aolower <- avgpricecall_test - avgpricecallsd_test 
   aoupper <- avgpricecall_test + avgpricecallsd_test
-  #Generate Half normal variates
-  set.seed(420)
+  
+  #Antithetical Variate
+  set.seed(seed_gen)
+  
   z <- matrix(rnorm(m *numsim/2), numsim/2, m)
   anti_z <- -z
+  
   zcum <- t(apply(z,1,cumsum))
   antizcum <- t(apply(anti_z,1,cumsum))
-  zcum <- rbind(zcum,antizcum)
+  
   h <- tt/m
-  S <- matrix(1, nrow = numsim, ncol = m)
+  
+  S <- matrix(1, nrow = numsim/2, ncol = m)
+  SA <- matrix(1, nrow = numsim/2, ncol = m)
+  
   for (i in 1:m){
-    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + 
-                        v * sqrt(h) * zcum[, i])
-  }
-  ST <- S[,m]
+    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
+  for (i in 1:m){
+    SA[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * antizcum[, i])}
   Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  SAavg <- switch("arith", arith = apply(SA, 1, sum)/m, geom = apply(SA, 1, prod)^(1/m))
   Option_Prices <- pmax(Savg - k, 0)
-  avgpricecall <- mean(Option_Prices) * exp(-r * tt)
-  avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
+  Option_Prices <- Option_Prices * exp(-r * tt)
+  A_Option_Prices <- pmax(SAavg - k, 0)
+  A_Option_Prices <- Option_Prices * exp(-r * tt)
+
+  price_Av <- (Option_Prices + A_Option_Prices)/2
+  
+  avgpricecall <- mean(price_Av) 
+  avgpricecallsd <- 1.96*sd(price_Av)/sqrt(numsim) 
   avlower <- avgpricecall - avgpricecallsd
   avupper <- avgpricecall + avgpricecallsd
   output <- matrix(c(avgpricecall_test,avgpricecall,avgpricecallsd_test,avgpricecallsd,aolower,avlower,aoupper,avupper), 2, 4)
   colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
   rownames(output) <- c("Vanilla Asian Option", "AV Asian Option")
   return(output)
-  
 }
 
 #Code is is just used to show AV do reduce variance for AO
 ACO_AV()
+
+"Plot of Stock Movement under Monte Carlo"
+Quick_AO <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
+  z <- matrix(rnorm(m *numsim), numsim, m)
+  zcum <- t(apply(z,1,cumsum))
+  h <- tt/m
+  S <- matrix(1, nrow = numsim, ncol = m)
+  for (i in 1:m){
+    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
+  return(S)
+}
+df=as.data.frame(Quick_AO()) 
+df <- data.frame(append(df, c(100), after=0))
+colnames(df) =sprintf("Day %s", c(0:20))
+# To Manually Change y axis: yaxt="n"
+matplot(t(df), type="l", main = "Monte Carlo Stock Prices with Asian Option (10,000 simulations) ",xlab = "Days", ylab = "Stock Price", xaxs="i", yaxs="r", xaxt="n")
+axis(1,at=c(1, 6, 11, 16, 21),labels=c(0, 5, 10, 15, 20))
+#axis(2,at=c(80, 90, 100, 110, 120),labels=c(80, 90, 100, 110, 120))
+legend(2, 120, legend=c("Volatility = 0.2", "Risk Free Rate = 0.05", "Starting Stock Value = 100" ), fill=topo.colors(3), cex=0.8)
+
+"Plot of Stock Movement with Antithetical Variables"
+Quick_AV <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
+  z <- matrix(rnorm(m *numsim/2), numsim/2, m)
+  anti_z <- -z
+  zcum <- t(apply(z,1,cumsum))
+  antizcum <- t(apply(anti_z,1,cumsum))
+  h <- tt/m
+  S <- matrix(1, nrow = numsim/2, ncol = m)
+  SA <- matrix(1, nrow = numsim/2, ncol = m)
+  for (i in 1:m){
+    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
+  for (i in 1:m){
+    SA[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * antizcum[, i])}
+  S <- rbind(S, SA)
+  return(S)
+}
+df=as.data.frame(Quick_AV()) 
+df <- data.frame(append(df, c(100), after=0))
+colnames(df) =sprintf("Day %s", c(0:20))
+matplot(t(df), type="l", main = "Monte Carlo Stock Prices with Antithetical Variables (10,000 simulations) ",xlab = "Days", ylab = "Stock Price", xaxs="i", yaxs="r", xaxt="n")
+axis(1,at=c(1, 6, 11, 16, 21),labels=c(0, 5, 10, 15, 20))
+#axis(2,at=c(80, 90, 100, 110, 120),labels=c(80, 90, 100, 110, 120))
+legend(2, 120, legend=c("Volatility = 0.2", "Risk Free Rate = 0.05", "Starting Stock Value = 100" ), fill=topo.colors(3), cex=0.8)
+
 
