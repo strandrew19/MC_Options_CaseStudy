@@ -180,10 +180,8 @@ ECO<-function(S_0=100,K=100,vol=0.2,T_years=1,r=0.02,numsim=10^4){
 
 #Simulate payoffs with regular and antithetical
 ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4){
-  set.seed(420)
-  #normal Draws
-  z <- matrix(rnorm(m * numsim), numsim, m)
-  set.seed(420)
+  #normal Draws(halved given other half are provided by anithetical)
+  z <- matrix(rnorm(m * numsim/2), numsim/2, m)
   #antithetical draw
   anti_z <- -z
   #Simulate payoffs with both processes
@@ -201,6 +199,7 @@ ECO_Av <-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4){
 #Compare Variance of ECO with AV vs without
 ECO_Av()
 ECO()
+
 
 "On to Control Variates"
 
@@ -229,11 +228,97 @@ ECO_CV<-function(s=100,k=100,v=0.2,T_years=1,r=0.02,numsim=10^4, with_naive=TRUE
   return(c(Price_CV=Price,SE_CV=SE,Lower=LowerB,Upper=UpperB))
 }
 
+#European Call Option with Control Variate
 ECO_CV()
 
-ACO <- function(s=100,k=100,v=0.2,T_days=20,r=0.02, numsim=10^4){
-  T_days <- T_days/252 #Annualize time period
-  ST <- s0 * exp((r-v^2/2)*T_days + v*sqrt(T_days))
+ACO <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
+  "Z - creates a matrix of draws from a normal distribution (Simulate Brownian Motion for Monte Carlo Simulation)"
+  "Matrix Dimensions (Rows: Simulation runs, Cols: Price Mark to Market Update)"
+  "Price dimension is set to 20 (IDEA: Mark to Market over 20 trading days - 1 month)"
+  z <- matrix(rnorm(m *numsim), numsim, m)
+  "Update normal distribution matrix by cumulatively adding row wise (To simulate price movements of stock)"
+  zcum <- t(apply(z,1,cumsum))
+  "Scale the time interval to the number of prices to be calculated"
+  h <- tt/m
+  "Create a 1's matrix that will be updated with prices based on zcum matrix"
+  S <- matrix(1, nrow = numsim, ncol = m)
+  "Loop through S Matrix, updating Asset price based on corresponding zcum value(Brownian Motion)"
+  for (i in 1:m){
+    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + 
+                        v * sqrt(h) * zcum[, i])
+  }
+  "Ending value of each Simulation run"
+  ST <- S[,m]
+  
+  #Evaluations with Black Scholes
+  tmp <- pmax(ST - k, 0)
+  bscall <- mean(tmp) * exp(-r * tt)
+  bscallsd <- sd(tmp) * exp(-r * tt)
+  bslower <- bscall - bscallsd
+  bsupper <- bscall + bscallsd
+  "Average Price of each simulation (Required for evaluation of Asian Option"
+  Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  "Average Price of Asian Call"
+  Option_Prices <- pmax(Savg - k, 0)
+  avgpricecall <- mean(Option_Prices) * exp(-r * tt)
+  avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
+  aolower <- avgpricecall - avgpricecallsd 
+  aoupper <- avgpricecall + avgpricecallsd
+  "Return Matrix of ouputs"
+  output <- matrix(c(bscall,avgpricecall,bscallsd,avgpricecallsd,bslower,aolower,bsupper,aoupper), 2, 4)
+  colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
+  rownames(output) <- c("Vanilla (BS)", "Asian Avg Price")
+  return(output)
 }
-#Price dimension is set to 20 (IDEA: Mark to Market over 20 trading days - 1 month)
+
+#Vanilla Asian Call Option and its Black-Scholes equivalent(evaluate only final price)
+"NOTE: Negative prices are shown but it would be 0 in reality"
+ACO()
+
+ACO_AV <- function(s=100,k=100,v=0.2,T_years=1,r=0.02, m = 20, numsim=10^4){
+  set.seed(420)
+  #Test without control variates for comparison
+  test <- matrix(rnorm(m *numsim), numsim, m)
+  tzcum <- t(apply(test,1,cumsum))
+  h <- tt/m
+  S_test <- matrix(1, nrow = numsim, ncol = m)
+  for (i in 1:m){
+    S_test[, i] <- s * exp((r - 0.5 * v^2) * h * i + 
+                        v * sqrt(h) * tzcum[, i])
+  }
+  ST_test <- S_test[,m]
+  Savg_test <- switch("arith", arith = apply(S_test, 1, sum)/m, geom = apply(S_test, 1, prod)^(1/m))
+  Option_Prices_test <- pmax(Savg_test - k, 0)
+  avgpricecall_test <- mean(Option_Prices_test) * exp(-r * tt)
+  avgpricecallsd_test <- sd(Option_Prices_test) * exp(-r * tt)
+  aolower <- avgpricecall_test - avgpricecallsd_test 
+  aoupper <- avgpricecall_test + avgpricecallsd_test
+  #Generate Half normal variates
+  set.seed(420)
+  z <- matrix(rnorm(m *numsim/2), numsim/2, m)
+  anti_z <- -z
+  zcum <- t(apply(z,1,cumsum))
+  antizcum <- t(apply(anti_z,1,cumsum))
+  zcum <- rbind(zcum,antizcum)
+  h <- tt/m
+  S <- matrix(1, nrow = numsim, ncol = m)
+  for (i in 1:m){
+    S[, i] <- s * exp((r - 0.5 * v^2) * h * i + 
+                        v * sqrt(h) * zcum[, i])
+  }
+  ST <- S[,m]
+  Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  Option_Prices <- pmax(Savg - k, 0)
+  avgpricecall <- mean(Option_Prices) * exp(-r * tt)
+  avgpricecallsd <- sd(Option_Prices) * exp(-r * tt)
+  avlower <- avgpricecall - avgpricecallsd
+  avupper <- avgpricecall + avgpricecallsd
+  output <- matrix(c(avgpricecall_test,avgpricecall,avgpricecallsd_test,avgpricecallsd,aolower,avlower,aoupper,avupper), 2, 4)
+  colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
+  rownames(output) <- c("Vanilla Asian Option", "AV Asian Option")
+  return(output)
+  
+}
+
+ACO_AV()
 
