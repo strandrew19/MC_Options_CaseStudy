@@ -257,9 +257,12 @@ ACO <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
     #return(output)
     }
 
-ACO_AV <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10){
+"MC with Antithetic Variable"
+
+ACO_AV <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4){
   seed_gen <- sample(1:1000, 1)
   set.seed(seed_gen)
+  
   #Test without control variates for comparison
   test <- matrix(rnorm(m *numsim), numsim, m)
   tzcum <- t(apply(test,1,cumsum))
@@ -301,7 +304,7 @@ ACO_AV <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10){
   Option_Prices <- pmax(Savg - k, 0)
   Option_Prices <- Option_Prices * exp(-r * tt)
   A_Option_Prices <- pmax(SAavg - k, 0)
-  A_Option_Prices <- Option_Prices * exp(-r * tt)
+  A_Option_Prices <- A_Option_Prices * exp(-r * tt)
 
   price_Av <- (Option_Prices + A_Option_Prices)/2
   
@@ -317,6 +320,75 @@ ACO_AV <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10){
 
 #Code is is just used to show AV do reduce variance for AO
 ACO_AV()
+
+"MC for Asian Call Option with Control Variate (Final Stock Price)"
+
+ACO_CV<- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4){
+  seed_gen <- sample(1:1000, 1)
+  set.seed(seed_gen)
+  
+  #Test without control variates for comparison
+  z <- matrix(rnorm(m *numsim), numsim, m)
+  zcum <- t(apply(z,1,cumsum))
+  h <- tt/m
+  S <- matrix(1, nrow = numsim, ncol = m)
+  for (i in 1:m){S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
+  ST <- S[,m]
+  Savg_test <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  Option_Prices <- pmax(Savg_test - k, 0)
+  Option_Prices <- Option_Prices* exp(-r * tt)
+  
+  theta_star <- cov(Option_Prices,ST)/var(ST)
+  
+  price_cv <- Option_Prices - theta_star*(ST - s*exp(r*tt))
+  
+  avgpricecall <- mean(Option_Prices) 
+  avgpricecallsd <- 1.96*sd(Option_Prices)/sqrt(numsim)
+  aolower <- avgpricecall - avgpricecallsd 
+  aoupper <- avgpricecall + avgpricecallsd
+  
+  CVavgpricecall <- mean(price_cv) 
+  CVavgpricecallsd <- 1.96*sd(price_cv)/sqrt(numsim)
+  CVaolower <- CVavgpricecall - CVavgpricecallsd 
+  CVaoupper <- CVavgpricecall + CVavgpricecallsd
+  
+  output <- matrix(c(avgpricecall,CVavgpricecall,avgpricecallsd,CVavgpricecallsd,aolower,CVaolower,aoupper,CVaoupper), 2, 4)
+  colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
+  rownames(output) <- c("Vanilla Asian Option", "Final Value Control Variate")
+  return(output)
+}
+
+ACO_CV()
+
+
+asian_option_MC_cvST<-function(s0=100,K=100,r=0.02,t_i=c(15,30,45,60),
+                               vol=0.2,callOrPut="call",n=10^5){
+  #Assume the last element of t_i is maturity
+  t_i<-t_i/252 #Annualize time periods
+  sT<-s0*exp((r-vol^2/2)*t_i[1] + vol*sqrt(t_i[1])*rnorm(n))
+  sum_sT<-sT
+  for(i in 2:length(t_i)){
+    dt<-t_i[i]-t_i[i-1]
+    sT<-sT*exp((r-vol^2/2)*dt + vol*sqrt(dt)*rnorm(n))
+    sum_sT<-sum_sT + sT
+  }
+  if(callOrPut=="call"){
+    price <- pmax(sum_sT/length(t_i) - K,0)*exp(-r*t_i[length(t_i)])
+  }else{
+    price <- pmax(K - sum_sT/length(t_i),0)*exp(-r*t_i[length(t_i)])
+  }
+  
+  theta_star <- cov(price,sT)/var(sT)
+  #E[sT] = s0*exp(r*T)
+  price_cv <- price - theta_star*(sT - s0*exp(r*t_i[length(t_i)]))
+  
+  mean_price<-mean(price_cv)
+  SE_price <- 1.96*sd(price_cv)/sqrt(n)
+  lower_price <- mean_price - SE_price
+  upper_price <- mean_price + SE_price
+  return(c(Price=mean_price,SE=SE_price,Lower=lower_price,Upper=upper_price))
+}
+asian_option_MC_cvST()
 
 "Plot of Stock Movement under Monte Carlo"
 Quick_AO <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
