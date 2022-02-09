@@ -1,0 +1,10 @@
+Package: PAO
+Type: Package
+Title: Pricing Asian Options
+Version: 0.1.0
+Authors: Andrew Stranberg
+Maintainer: Andrew Stranberg <s4anstra@uni-trier.de>
+Description: The package provides a quick pricing of Asian options via Monte Carlo Simulation. This includes a Crude Monte Carlo, Monte Carlo with antithetic Variables, and MC with Control Variates including: Final Price, European Call Options and Geometric Average Asian Options
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.1.2
