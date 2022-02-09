@@ -365,15 +365,15 @@ ACO_CV_ECO <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4){
   seed_gen <- sample(1:1000, 1)
   set.seed(seed_gen)
   
-  #Test without control variates for comparison
+  
   z <- matrix(rnorm(m *numsim), numsim, m)
   zcum <- t(apply(z,1,cumsum))
   h <- tt/m
   S <- matrix(1, nrow = numsim, ncol = m)
   for (i in 1:m){S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
   ST <- S[,m]
-  Savg_test <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
-  Option_Prices <- pmax(Savg_test - k, 0)
+  Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  Option_Prices <- pmax(Savg - k, 0)
   Option_Prices <- Option_Prices* exp(-r * tt)
   
   Price_ECO <- pmax(ST - k,0)*exp(-r*tt)
@@ -402,7 +402,25 @@ ACO_CV_ECO <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4){
   return(output)
 }
 
+
 ACO_CV_ECO()
+
+
+geoavg <- exp((1/(m+1))*log(S))
+Payoff_geo <- exp(-r*tt) * max(geoavg - k, 0)
+
+#Geometric Asian Black Scholes Function
+
+GEO_AO <-function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20){
+  #Geometric Asian Black Scholes Function
+  sigma_z <- v * sqrt(((2*m)+1)/(6*(m+1)))
+  rho <- ((r-v^2/2)+sigma_z)/2
+  GEOM_value <- Black_Scholes_call(S_0=s,K=k,r=rho,T_years=tt, vol = sigma_z)
+  return(GEOM_value)
+}
+
+GEO_AO()
+
 
 ACO_CV_GEOM <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4){
   seed_gen <- sample(1:1000, 1)
@@ -415,17 +433,20 @@ ACO_CV_GEOM <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4)
   S <- matrix(1, nrow = numsim, ncol = m)
   for (i in 1:m){S[, i] <- s * exp((r - 0.5 * v^2) * h * i + v * sqrt(h) * zcum[, i])}
   ST <- S[,m]
-  Savg_test <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
-  Option_Prices <- pmax(Savg_test - k, 0)
+  Savg <- switch("arith", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  Geomavg <- switch("geom", arith = apply(S, 1, sum)/m, geom = apply(S, 1, prod)^(1/m))
+  
+  Option_Prices <- pmax(Savg - k, 0)
   Option_Prices <- Option_Prices* exp(-r * tt)
   
-  Price_ECO <- pmax(ST - k,0)*exp(-r*tt)
-  #Calculate Black_Scholes Price so that we can generate Expectation E(Price of European Option)
-  Price_BS <- Black_Scholes_call(S_0=s,K=k, r=r, T_years=tt,vol=v)
+  Price_GEOM <- pmax(Geomavg - k, 0)*exp(-r*tt)
   
-  theta_star <- cov(Option_Prices,Price_ECO)/var(Price_ECO)
+  #Calculate Expected Value based on Closed Form Geometric Average
+  CF_GEO <- GEO_AO(s,k,v,tt,r,m)
   
-  price_cv <- Option_Prices - theta_star*(Price_ECO - Price_BS)
+  theta_star <- cov(Option_Prices,Price_GEOM)/var(Price_GEOM)
+  
+  price_cv <- Option_Prices - theta_star*(Price_GEOM - CF_GEO)
   
   mean_price<-mean(price_cv)
   
@@ -434,16 +455,18 @@ ACO_CV_GEOM <- function(s=100,k=100,v=0.2,tt=20/252,r=0.05, m = 20, numsim=10^4)
   aolower <- avgpricecall - avgpricecallsd 
   aoupper <- avgpricecall + avgpricecallsd
   
-  CVavgpricecall <- mean(price_cv) 
-  CVavgpricecallsd <- 1.96*sd(price_cv)/sqrt(numsim)
-  CVaolower <- CVavgpricecall - CVavgpricecallsd 
-  CVaoupper <- CVavgpricecall + CVavgpricecallsd
+  GEOavgpricecall <- mean(price_cv) 
+  GEOavgpricecallsd <- 1.96*sd(price_cv)/sqrt(numsim)
+  GEOlower <- GEOavgpricecall - GEOavgpricecallsd 
+  GEOupper <- GEOavgpricecall + GEOavgpricecallsd
   
-  output <- matrix(c(avgpricecall,CVavgpricecall,avgpricecallsd,CVavgpricecallsd,aolower,CVaolower,aoupper,CVaoupper), 2, 4)
+  output <- matrix(c(avgpricecall,GEOavgpricecall,avgpricecallsd,GEOavgpricecallsd,aolower,GEOlower,aoupper,GEOupper), 2, 4)
   colnames(output) <- c("Call", "SE Call", "Lower", "Upper")
-  rownames(output) <- c("Vanilla Asian Option", "ECO Control Variate")
+  rownames(output) <- c("Vanilla Asian Option", "GEO Control Variate")
   return(output)
 }
+
+ACO_CV_GEOM()
 
 "Plot of Stock Movement under Monte Carlo"
 Quick_AO <- function(s=100,k=100,v=0.2,t_i=c(1:20),r=0.05,numsim=10^4){
@@ -489,3 +512,15 @@ axis(1,at=c(1, 6, 11, 16, 21),labels=c(0, 5, 10, 15, 20))
 legend(2, 120, legend=c("Volatility = 0.2", "Risk Free Rate = 0.05", "Starting Stock Value = 100" ), fill=topo.colors(3), cex=0.8)
 
 
+#Closing thoughts
+#There are 4 popular models for Asian Option Pricing
+##Model 1: The Kemma and Vorst model
+### Proposed closed-from pricing solution where log normal distribution is assumed
+##Model 2: The Turnbull and Wakeman model
+### Analytical Approximation for arithmetic averaging which also assumes log normal dist.
+##Model 3: The Levy arithmetic rate approximation
+### Extends Turnbull-Wakeman by arguing options should be estimated on a discrete time rather than continuous
+####Note: Both Model 2 and 3 can be computed using MC simulation
+##Model 4: The Curran approximation
+### Approximation for arithmetic Asian options based on a geometric conditioning approach
+### Take natural log of geom and price of asset at that time, underlying asset can be conditioned on geom dist and integrated accodringly
