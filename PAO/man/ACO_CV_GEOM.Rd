@@ -31,6 +31,11 @@ ACO_CV_GEOM(
 }
 \value{
 Estimated Price of Asian Call Option, Standard Error and One Standard Deviation Confidence Interval
+
+Evaluate price of a 90 strike call option with 20 days to expiration
+(one month trading) and 20 price intervals with a risk free rate of
+5%, 20% volatility and stock trading at 100 a share via
+10000 simulated prices
 }
 \description{
 This function provides Monte Carlo Pricing for a Asian Call Option with European Call Option as a Control Variate
@@ -38,9 +43,5 @@ Inspiration from: https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.ht
 and package(derivmkts)
 }
 \examples{
-ACO_CV_GEOM(100, 90, 0.05, 20/252, 0.20, 20, 10^4, FALSE)
-Evaluate price of a 90 strike call option with 20 days to expiration 
-(one month trading) and 20 price intervals with a risk free rate of 
-5\%, 20\% volatility and stock trading at 100 a share via 
-10000 simulated prices
+ACO_CV_GEOM(100, 90, 0.05, 20/252, 0.20, 20, 10^4)
 }

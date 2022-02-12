@@ -4,15 +4,7 @@
 \alias{ECO_CV}
 \title{European Call Option Pricing with Control Variate (Final Stock Price)}
 \usage{
-ECO_CV(
-  s = 100,
-  k = 100,
-  v = 0.2,
-  tt = 252/252,
-  r = 0.05,
-  numsim = 10^4,
-  with_naive = TRUE
-)
+ECO_CV(s = 100, k = 100, v = 0.2, tt = 252/252, r = 0.05, numsim = 10^4)
 }
 \arguments{
 \item{s}{Starting Stock Price}
@@ -26,11 +18,14 @@ ECO_CV(
 \item{r}{Risk Free Rate - Annualized}
 
 \item{numsim}{Number of Price Simulations Run}
-
-\item{with_naive}{If True, return crude Monte Carlo Estimate for Comparision}
 }
 \value{
 Estimated Price of European Call Option, Standard Error and One Standard Deviation Confidence Interval
+
+Evaluate price of a 90 strike call option with 20 days to expiration
+(one month trading) and 20 price intervals with a risk free rate of
+5%, 20% volatility and stock trading at 100 a share via
+10000 simulated prices and no print out of Crude Monte Carlo Simulation
 }
 \description{
 This function provides Monte Carlo Pricing for a European Call Option with the Final Stock Price as a Control Variate
@@ -38,9 +33,5 @@ Inspiration from: https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.ht
 and package(derivmkts)
 }
 \examples{
-ECO_CV(100, 90, 0.05, 20/252, 0.20, 20, 10^4, FALSE)
-Evaluate price of a 90 strike call option with 20 days to expiration 
-(one month trading) and 20 price intervals with a risk free rate of 
-5\%, 20\% volatility and stock trading at 100 a share via 
-10000 simulated prices and no print out of Crude Monte Carlo Simulation
+ECO_CV(100, 90, 0.05, 20/252, 0.20, 10^4)
 }

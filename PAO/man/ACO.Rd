@@ -23,6 +23,11 @@ ACO(s = 100, k = 100, v = 0.2, tt = 252/252, r = 0.05, m = 20, numsim = 10^4)
 }
 \value{
 Estimated Price of Asian Call Option, Standard Error and One Standard Deviation Confidence Interval
+
+Evaluate price of a 90 strike call option with 20 days to expiration
+(one month trading) and 20 price intervals with a risk free rate of
+5%, 20% volatility and stock trading at 100 a share via
+10000 simulated prices and Black Scholes Pricing for Comparison
 }
 \description{
 This function provides Monte Carlo Pricing for a Asian Call Option
@@ -30,9 +35,5 @@ Inspiration from: https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.ht
 and package(derivmkts)
 }
 \examples{
-ACO(100, 90, 0.05, 20/252, 0.20, 20, 10^4, FALSE)
-Evaluate price of a 90 strike call option with 20 days to expiration 
-(one month trading) and 20 price intervals with a risk free rate of 
-5\%, 20\% volatility and stock trading at 100 a share via 
-10000 simulated prices and Black Scholes Pricing for Comparison
+ACO(100, 90, 0.05, 20/252, 0.20, 20, 10^4)
 }

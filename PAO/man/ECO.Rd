@@ -23,6 +23,11 @@ ECO(s = 100, k = 100, v = 0.2, tt = 252/252, r = 0.05, m = 20, numsim = 10^4)
 }
 \value{
 Estimated Price of European Call Option, Standard Error and One Standard Deviation Confidence Interval
+
+Evaluate price of a 90 strike call option with 20 days to expiration
+(one month trading) and 20 price intervals with a risk free rate of
+5%, 20% volatility and stock trading at 100 a share via
+10000 simulated prices
 }
 \description{
 This function provides a crude Monte Carlo Pricing for a European Call Option
@@ -31,8 +36,4 @@ and package(derivmkts)
 }
 \examples{
 ECO(100, 90, 0.05, 20/252, 0.20, 20, 10^4)
-Evaluate price of a 90 strike call option with 20 days to expiration 
-(one month trading) and 20 price intervals with a risk free rate of 
-5\%, 20\% volatility and stock trading at 100 a share via 
-10000 simulated prices  
 }

@@ -19,13 +19,14 @@ Black_Scholes_call(s = 100, k = 100, v = 0.2, tt = 252/252, r = 0.05)
 }
 \value{
 Price of Black-Scholes European Call Option
+
+Evaluate price of a 90 strike call option with 20 days to expiration
+(one month trading) with a risk free rate of 5%, 20% volatility and
+stock trading at 100 a share
 }
 \description{
 This function provides pricing for a Black-Scholes Call Option
 }
 \examples{
 Black_Scholes_call(100, 90, 0.05, 20/252, 0.20)
-Evaluate price of a 90 strike call option with 20 days to expiration 
-(one month trading) with a risk free rate of 5\%, 20\% volatility and 
-stock trading at 100 a share  
 }

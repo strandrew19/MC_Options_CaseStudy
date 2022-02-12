@@ -21,6 +21,9 @@ GEO_AO(s = 100, k = 100, v = 0.2, tt = 252/252, r = 0.05, m = 20)
 }
 \value{
 Estimated Price of Asian Call Option, Standard Error and One Standard Deviation Confidence Interval
+
+Method Generates volatility and interest rates that are plugged back into the
+ Black-Scholes Formula to produce a Geometric Average Price Estimate
 }
 \description{
 This function provides a Closed Form Solution to the Geometric Asian Option
@@ -28,6 +31,5 @@ Inspiration from: https://berkorbay.github.io/fe522/02_Monte_Carlo_Simulation.ht
 and package(derivmkts)
 }
 \examples{
-GEO_AO(100, 90, 0.05, 20/252, 0.20, 20, FALSE)
-Method Generates volatility and interest rates that are plugged back into the Black-Scholes Formula to produce a Geometric Average Price Estimate
+GEO_AO(100, 90, 0.05, 20/252, 0.20, 20)
 }
