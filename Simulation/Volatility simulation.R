@@ -1,4 +1,4 @@
-setwd("C:/Users/Andrew/Documents/Uni Trier/Semester 3/Monte Carlo Simulation/Options/PAO")
+#setwd() <- Set at the top level directory where the PAO package is located (ie. (../PAO/)
 setwd("..")
 rm(list=ls())
 library(ggplot2)
